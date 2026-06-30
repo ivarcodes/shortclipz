@@ -23,6 +23,7 @@ async function ensureDirs() {
 }
 
 const execAsync = promisify(exec)
+const execOptions = { maxBuffer: 10 * 1024 * 1024 } // 10MB stdout buffer for FFmpeg
 
 function getFfmpegPath(): string {
   const isWin = process.platform === 'win32'
@@ -40,7 +41,7 @@ function getFfmpegPath(): string {
 const ffmpegPath = getFfmpegPath()
 
 async function extractAudio(videoPath: string, audioPath: string) {
-  await execAsync(`"${ffmpegPath}" -y -i "${videoPath}" -vn -acodec pcm_s16le -ar 16000 -ac 1 "${audioPath}" -loglevel error`)
+  await execAsync(`"${ffmpegPath}" -y -i "${videoPath}" -vn -acodec pcm_s16le -ar 16000 -ac 1 "${audioPath}" -loglevel error`, execOptions)
 }
 
 async function transcribe(audioPath: string): Promise<string> {
@@ -48,7 +49,7 @@ async function transcribe(audioPath: string): Promise<string> {
   const script = `import sys, warnings
 warnings.filterwarnings("ignore")
 from faster_whisper import WhisperModel
-model = WhisperModel("base", device="cpu", compute_type="int8")
+model = WhisperModel("tiny", device="cpu", compute_type="int8")
 segments, _ = model.transcribe(r"${audioPath.replace(/\\/g, '\\\\')}")
 for seg in segments:
     print(f"{seg.start:.2f}\\t{seg.end:.2f}\\t{seg.text}")
@@ -191,12 +192,14 @@ async function generateSceneClip(
   await fs.writeFile(assFull, ass, 'utf-8')
 
   await execAsync(
-    `"${ffmpegPath}" -y -ss ${start} -i "${videoPath}" -t ${duration} -vf "ass=${assName}" -c:v libx264 -c:a aac -movflags +faststart "${clipPath}" -loglevel error`
+    `"${ffmpegPath}" -y -ss ${start} -i "${videoPath}" -t ${duration} -vf "ass=${assName}" -c:v libx264 -preset ultrafast -c:a aac -movflags +faststart "${clipPath}" -loglevel error`,
+    execOptions
   )
 
   const mid = start + duration / 2
   await execAsync(
-    `"${ffmpegPath}" -y -ss ${mid} -i "${videoPath}" -vframes 1 -s 480x270 "${thumbPath}" -loglevel error`
+    `"${ffmpegPath}" -y -ss ${mid} -i "${videoPath}" -vframes 1 -s 480x270 "${thumbPath}" -loglevel error`,
+    execOptions
   )
 
   await fs.unlink(assFull).catch(() => {})
@@ -242,22 +245,22 @@ export async function processVideo(videoId: string) {
       sceneDocs.push(doc)
     }
 
-    for (let i = 0; i < sceneDocs.length; i++) {
+    await Promise.all(sceneDocs.map(async (doc, i) => {
       try {
         const { clipPath, thumbPath, duration, fileSize } = await generateSceneClip(
           video.filePath, scenes[i].start, scenes[i].end, video.captionStyle, fullTranscript
         )
-        sceneDocs[i].clipFilePath = clipPath
-        sceneDocs[i].thumbnailPath = thumbPath
-        sceneDocs[i].duration = duration
-        sceneDocs[i].fileSize = fileSize
-        sceneDocs[i].status = 'done'
-        await sceneDocs[i].save()
+        doc.clipFilePath = clipPath
+        doc.thumbnailPath = thumbPath
+        doc.duration = duration
+        doc.fileSize = fileSize
+        doc.status = 'done'
+        await doc.save()
       } catch {
-        sceneDocs[i].status = 'failed'
-        await sceneDocs[i].save().catch(() => {})
+        doc.status = 'failed'
+        await doc.save().catch(() => {})
       }
-    }
+    }))
 
     video.status = 'done'
     await video.save()

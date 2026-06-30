@@ -15,8 +15,8 @@ const geistMono = Geist_Mono({
 })
 
 export const metadata: Metadata = {
-  title: 'ShortClipz — AI Video Clip Generator',
-  description: 'Upload a video, get the best short clip with AI-powered subtitles',
+  title: 'ShortClipz — AI clip generator',
+  description: 'Upload any video. AI finds the best scene, adds smart subtitles. Download your short clip.',
 }
 
 export default function RootLayout({

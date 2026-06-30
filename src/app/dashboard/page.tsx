@@ -1,4 +1,4 @@
-import { getSession } from '@/lib/auth'
+﻿import { getSession } from '@/lib/auth'
 import { redirect } from 'next/navigation'
 import UploadForm from '@/components/UploadForm'
 
@@ -7,10 +7,10 @@ export default async function DashboardPage() {
   if (!session) redirect('/auth/signin')
 
   return (
-    <div className="max-w-3xl mx-auto px-6 py-12">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold">Create a Clip</h1>
-        <p className="text-zinc-400 mt-2">Upload a video and let AI do the rest</p>
+    <div className="max-w-sm mx-auto px-5 py-16 sm:py-24">
+      <div className="mb-10 text-center space-y-1">
+        <h1 className="text-xl font-semibold tracking-tight">Create a Clip</h1>
+        <p className="text-sm text-[#888]">Upload a video, AI does the rest</p>
       </div>
       <UploadForm />
     </div>

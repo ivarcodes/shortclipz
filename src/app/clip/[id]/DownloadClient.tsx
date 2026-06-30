@@ -1,6 +1,7 @@
-'use client'
+﻿'use client'
 
 import CountdownTimer from '@/components/CountdownTimer'
+import { Download, Clock, Film } from 'lucide-react'
 
 interface Props {
   clipId: string
@@ -13,13 +14,7 @@ interface Props {
 }
 
 export default function DownloadClient({
-  clipId,
-  expired,
-  expiresAt,
-  fileSize,
-  duration,
-  title,
-  downloads,
+  clipId, expired, expiresAt, fileSize, duration, title, downloads,
 }: Props) {
   function formatSize(bytes?: number) {
     if (!bytes) return 'Unknown'
@@ -28,48 +23,47 @@ export default function DownloadClient({
   }
 
   return (
-    <div className="max-w-lg mx-auto px-6 py-12 text-center space-y-8">
-      <div className="space-y-2">
-        <h1 className="text-3xl font-bold">{title || 'Your Clip is Ready!'}</h1>
-        <p className="text-zinc-400">Download before it expires</p>
-      </div>
-
-      <CountdownTimer expiresAt={expiresAt} />
-
-      {expired ? (
-        <div className="p-8 rounded-xl bg-zinc-900/50 border border-zinc-800">
-          <p className="text-zinc-400">This clip is no longer available.</p>
-          <p className="text-sm text-zinc-600 mt-1">Upload again to create a new one.</p>
-        </div>
-      ) : (
-        <>
-          <div className="p-6 rounded-xl bg-zinc-900/50 border border-zinc-800 space-y-3">
-            <div className="flex justify-between text-sm">
-              <span className="text-zinc-500">Duration</span>
-              <span className="text-white">{duration ? `${Math.round(duration)}s` : '—'}</span>
-            </div>
-            <div className="flex justify-between text-sm">
-              <span className="text-zinc-500">Size</span>
-              <span className="text-white">{formatSize(fileSize)}</span>
-            </div>
-            <div className="flex justify-between text-sm">
-              <span className="text-zinc-500">Downloads</span>
-              <span className="text-white">{downloads}</span>
-            </div>
+    <div className="max-w-xs mx-auto px-5 py-16">
+      <div className="card p-6 space-y-5">
+        <div className="text-center space-y-2">
+          <div className="w-10 h-10 mx-auto rounded-[8px] bg-[#111] border border-[#333] flex items-center justify-center">
+            <Film size={18} className="text-[#666]" />
           </div>
+          <h1 className="text-base font-bold tracking-tight">{title || 'Your Clip'}</h1>
+          <p className="text-xs text-[#555] font-medium">Download before it expires</p>
+        </div>
 
-          <a
-            href={`/api/clips/${clipId}/download`}
-            className="inline-block w-full py-4 bg-purple-600 hover:bg-purple-500 rounded-xl font-medium text-white transition-all text-lg"
-          >
-            Download Clip
-          </a>
+        <CountdownTimer expiresAt={expiresAt} />
 
-          <p className="text-xs text-zinc-600">
-            File will be deleted from server after the timer runs out
-          </p>
-        </>
-      )}
+        {expired ? (
+          <div className="py-4 px-3 rounded-[6px] bg-red-500/5 border border-red-500/10 text-center space-y-1">
+            <p className="text-xs font-semibold text-red-400">Expired</p>
+            <p className="text-[10px] text-[#555]">Upload again to create a new one.</p>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            <div className="rounded-[6px] bg-[#0a0a0a] border border-[#222] divide-y divide-[#222]">
+              {[
+                { label: 'Duration', value: duration ? `${Math.round(duration)}s` : '—' },
+                { label: 'Size', value: formatSize(fileSize) },
+                { label: 'Downloads', value: String(downloads) },
+              ].map((r) => (
+                <div key={r.label} className="flex items-center justify-between px-4 py-2.5">
+                  <span className="text-[11px] text-[#555] font-medium">{r.label}</span>
+                  <span className="text-[11px] text-white font-semibold">{r.value}</span>
+                </div>
+              ))}
+            </div>
+
+            <a href={`/api/clips/${clipId}/download`} className="flex items-center justify-center gap-2 w-full py-2.5 rounded-[6px] font-semibold text-sm text-black bg-white hover:bg-zinc-200 transition-all">
+              <Download size={14} />
+              Download Clip
+            </a>
+
+            <p className="text-center text-[10px] text-[#333] font-medium">Auto-deletes after timer runs out</p>
+          </div>
+        )}
+      </div>
     </div>
   )
 }
