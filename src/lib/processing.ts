@@ -8,6 +8,7 @@ import dbConnect from './db'
 import Video from './models/Video'
 import Scene, { IScene } from './models/Scene'
 import Groq from 'groq-sdk'
+import { cpus } from 'os'
 
 const UPLOAD_DIR = path.join(process.cwd(), 'uploads')
 const AUDIO_DIR = path.join(process.cwd(), 'audio')
@@ -114,12 +115,22 @@ function srtToAss(srt: string, style: string): string {
 }
 
 async function analyzeScenes(transcript: string): Promise<{ start: number; end: number; title: string }[]> {
+  // Truncate very long transcripts to avoid Groq token limits
+  const MAX_CHARS = 15000
+  let truncated = transcript
+  if (transcript.length > MAX_CHARS) {
+    // Take beginning + last portion to cover intro and outro
+    const half = Math.floor(MAX_CHARS * 0.6)
+    const tail = MAX_CHARS - half
+    truncated = transcript.slice(0, half) + '\n...\n' + transcript.slice(-tail)
+  }
+
   try {
     const completion = await groq.chat.completions.create({
       model: 'openai/gpt-oss-120b',
       messages: [
         { role: 'system', content: 'You analyze video transcripts and find the best moments for short-form clips (30-60s each). Return ONLY a valid JSON array of objects with "start" (seconds), "end" (seconds), and "title" (short catchy title). Find 3-5 best scenes.' },
-        { role: 'user', content: `Here is a video transcript with timestamps:\n\n${transcript}\n\nFind 3-5 most interesting 30-60 second segments for short clips. Return JSON array.` },
+        { role: 'user', content: `Here is a video transcript with timestamps:\n\n${truncated}\n\nFind 3-5 most interesting 30-60 second segments for short clips. Return JSON array.` },
       ],
       temperature: 0.3,
     })
@@ -245,7 +256,9 @@ export async function processVideo(videoId: string) {
       sceneDocs.push(doc)
     }
 
-    await Promise.all(sceneDocs.map(async (doc, i) => {
+    // Run clip generation with concurrency limit
+    const concurrency = Math.max(1, Math.min(cpus().length - 1, 3))
+    const tasks = sceneDocs.map((doc, i) => async () => {
       try {
         const { clipPath, thumbPath, duration, fileSize } = await generateSceneClip(
           video.filePath, scenes[i].start, scenes[i].end, video.captionStyle, fullTranscript
@@ -260,7 +273,17 @@ export async function processVideo(videoId: string) {
         doc.status = 'failed'
         await doc.save().catch(() => {})
       }
-    }))
+    })
+
+    let pos = 0
+    async function runner() {
+      while (pos < tasks.length) {
+        const task = tasks[pos++]
+        await task()
+      }
+    }
+    const pool = Array.from({ length: Math.min(concurrency, tasks.length) }, () => runner())
+    await Promise.all(pool)
 
     video.status = 'done'
     await video.save()

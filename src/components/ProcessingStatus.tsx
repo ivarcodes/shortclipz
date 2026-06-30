@@ -136,7 +136,7 @@ export default function ProcessingStatus({ videoId }: { videoId: string }) {
         </div>
 
         {/* Step */}
-        <div className="text-center space-y-2" key={currentStep}>
+        <div className="text-center space-y-2" key={`step-${currentStep}`}>
           <div className="relative w-12 h-12 mx-auto flex items-center justify-center">
             <div className="absolute inset-0 rounded-full border-2 border-white/10 border-t-white animate-spin" />
             <StepIcon size={22} className="text-white" />
@@ -152,7 +152,7 @@ export default function ProcessingStatus({ videoId }: { videoId: string }) {
         </div>
 
         {/* Fact */}
-        <p key={factIndex} className="text-[10px] text-[#888] text-center font-medium animate-step-in">{facts[factIndex]}</p>
+        <p key={`fact-${factIndex}`} className="text-[10px] text-[#888] text-center font-medium animate-step-in">{facts[factIndex]}</p>
 
         {/* Scene progress */}
         {scenes.length > 0 && (
