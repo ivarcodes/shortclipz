@@ -36,6 +36,26 @@ yarn-error.log*
 # vercel
 .vercel
 
+# runtime generated directories
+/audio/
+/clips/
+/uploads/
+/public/thumbs/
+
+# temp subtitle files
+_subs_*
+
+# test files
+*.mp4
+*.mov
+*.webm
+*.avi
+
+# testing artifacts
+cookies.txt
+payload*.json
+*.log
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts
